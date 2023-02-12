@@ -17,7 +17,7 @@ type Fs struct {
 	root string
 }
 
-func New(c *aliyundrive.Drive, root string) fs.FS {
+func New(c *aliyundrive.Drive, root string) *Fs {
 	return &Fs{c: c, root: root}
 }
 
@@ -46,6 +46,51 @@ func (f *Fs) Stat(name string) (fs.FileInfo, error) {
 func (f *Fs) Sub(dir string) (fs.FS, error) {
 	root := path.Join(f.root, dir)
 	return New(f.c, root), nil
+}
+
+func (f *Fs) WalkDir(root string, fn fs.WalkDirFunc) error {
+	ctx := context.Background()
+	p := path.Join(f.root, root)
+	file, err := f.open(ctx, p)
+	if err != nil {
+		return err
+	}
+	return f.walkDir(ctx, p, file, fn)
+}
+
+func (f *Fs) walkDir(ctx context.Context, rootPath string, rootFile *File, fn fs.WalkDirFunc) error {
+	var (
+		next  string
+		items []*aliyundrive.Item
+		err   error
+	)
+	for {
+		items, next, err = rootFile.list(ctx, aliyundrive.LimitMax, next)
+		if err != nil {
+			fnErr := fn(rootPath, nil, err)
+			if fnErr != nil {
+				return fnErr
+			}
+			continue
+		}
+		for _, item := range items {
+			file := &File{fs: f, item: item}
+			fnErr := fn(rootPath, file, nil)
+			if fnErr != nil {
+				return fnErr
+			}
+			if file.IsDir() {
+				err = f.walkDir(ctx, path.Join(rootPath, file.Name()), file, fn)
+				if err != nil {
+					return err
+				}
+			}
+		}
+		if next == "" {
+			break
+		}
+	}
+	return nil
 }
 
 func (f *Fs) open(ctx context.Context, p string) (*File, error) {
