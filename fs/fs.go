@@ -12,19 +12,28 @@ import (
 	"github.com/xbugio/aliyundrive-go-sdk"
 )
 
+// 实现fs.FS的文件系统
+//
+// 实现了ReadDirFs,StatFs,SubFs
 type Fs struct {
 	c    *aliyundrive.Drive
 	root string
 }
 
+// 创建一个Fs文件系统
+//
+// c：阿里云盘SDK客户端
+// root：根目录文件Id
 func New(c *aliyundrive.Drive, root string) *Fs {
 	return &Fs{c: c, root: root}
 }
 
+// 实现fs.FS的Open接口
 func (f *Fs) Open(name string) (fs.File, error) {
 	return f.open(context.Background(), name)
 }
 
+// 实现fs.ReadDirFS的ReadDir接口
 func (f *Fs) ReadDir(name string) ([]fs.DirEntry, error) {
 	file, err := f.open(context.Background(), name)
 	if err != nil {
@@ -34,6 +43,7 @@ func (f *Fs) ReadDir(name string) ([]fs.DirEntry, error) {
 	return file.ReadDir(-1)
 }
 
+// 实现fs.StatFS的Stat接口
 func (f *Fs) Stat(name string) (fs.FileInfo, error) {
 	file, err := f.open(context.Background(), name)
 	if err != nil {
@@ -43,11 +53,13 @@ func (f *Fs) Stat(name string) (fs.FileInfo, error) {
 	return file, nil
 }
 
+// 实现fs.SubFS的Sub接口
 func (f *Fs) Sub(dir string) (fs.FS, error) {
 	root := path.Join(f.root, dir)
 	return New(f.c, root), nil
 }
 
+// 更高效的WalkDir实现（建议使用这个来代替fs库里的WalkDir）
 func (f *Fs) WalkDir(root string, fn fs.WalkDirFunc) error {
 	ctx := context.Background()
 	p := path.Join(f.root, root)
