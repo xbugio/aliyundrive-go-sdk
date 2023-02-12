@@ -34,6 +34,7 @@ type GetUserInfoResponse struct {
 	LastLoginTime               int64       `json:"last_login_time"`
 }
 
+// 获取用户信息接口
 func (c *Drive) DoGetUserInfoRequest(ctx context.Context, request GetUserInfoRequest) (*GetUserInfoResponse, error) {
 	resp, err := c.requestWithCredit(ctx, "https://api.aliyundrive.com/v2/user/get", Object{})
 	if err != nil {

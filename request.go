@@ -12,15 +12,21 @@ import (
 type Array []any
 type Object map[string]any
 
+// 阿里云盘API调用出错的错误信息
 type ErrorResponse struct {
 	Code    string `json:"code"`
 	Message string `json:"message"`
 }
 
+// 错误信息的描述
 func (r *ErrorResponse) Error() string {
 	return fmt.Sprintf(`{"code":"%v","message":"%v"}`, r.Code, r.Message)
 }
 
+// 判断某个error是否是云盘接口返回的PreHashMatched错误
+//
+// 由于PreHashMatched用于秒传的情况，
+// 所以遇到该错误需要走秒传后续的逻辑
 func IsPreHashMatchedError(err error) bool {
 	errResponse, ok := err.(*ErrorResponse)
 	if !ok {
