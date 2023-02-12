@@ -5,6 +5,9 @@ import (
 	"encoding/json"
 )
 
+type GetUserInfoRequest struct {
+}
+
 type GetUserInfoResponse struct {
 	DomainID       string `json:"domain_id"`
 	UserID         string `json:"user_id"`
@@ -31,7 +34,7 @@ type GetUserInfoResponse struct {
 	LastLoginTime               int64       `json:"last_login_time"`
 }
 
-func (c *Drive) DoGetUserInfoRequest(ctx context.Context) (*GetUserInfoResponse, error) {
+func (c *Drive) DoGetUserInfoRequest(ctx context.Context, request GetUserInfoRequest) (*GetUserInfoResponse, error) {
 	resp, err := c.requestWithCredit(ctx, "https://api.aliyundrive.com/v2/user/get", Object{})
 	if err != nil {
 		return nil, err
