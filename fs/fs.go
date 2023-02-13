@@ -228,6 +228,15 @@ func (f *File) ReadDir(n int) (entries []fs.DirEntry, err error) {
 	if n > 1 {
 		return nil, fs.ErrInvalid
 	}
+
+	if f.item.FileId != aliyundrive.RootFileId {
+		parent := new(aliyundrive.Item)
+		parent.Name = ".."
+		parent.FileId = f.item.ParentFileId
+		parent.Type = "folder"
+		entries = append(entries, &File{fs: f.fs, item: parent})
+	}
+
 	ctx := context.Background()
 	next := ""
 	var items []*aliyundrive.Item
