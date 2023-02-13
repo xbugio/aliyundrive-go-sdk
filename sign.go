@@ -5,11 +5,8 @@ import (
 	"crypto/ecdsa"
 	"crypto/rand"
 	"crypto/sha256"
-	"encoding/base64"
 	"encoding/hex"
-	"io"
 	"net/http"
-	"net/url"
 	"time"
 
 	"github.com/dustinxie/ecc"
@@ -21,7 +18,6 @@ type SignatureManager interface {
 
 type signatureManager struct {
 	drive      *Drive
-	appId      string
 	deviceId   string
 	userId     string
 	httpClient *http.Client
@@ -31,10 +27,9 @@ type signatureManager struct {
 	signature   string
 }
 
-func NewSignatureManager(drive *Drive, appId string, deviceId string, userId string, httpClient *http.Client) *signatureManager {
+func NewSignatureManager(drive *Drive, deviceId string, userId string, httpClient *http.Client) *signatureManager {
 	m := &signatureManager{
 		drive:    drive,
-		appId:    appId,
 		deviceId: deviceId,
 		userId:   userId,
 	}
@@ -68,31 +63,12 @@ func (m *signatureManager) genSignature(ctx context.Context) error {
 	publicKeyString := m.getPublicKeyString(privateKey)
 
 	// 用key去生成signature
-	// FIXME: 临时采用远端node换算signature
-	code := ""
+	code := "5dde4e1bdf9e4966b387ba58f4b3fdc3:" + m.deviceId + ":" + m.userId + ":0"
 	hasher := sha256.New()
 	hasher.Write([]byte(code))
 	sum := hasher.Sum(nil)
-	msg := base64.StdEncoding.EncodeToString(sum)
-	key := base64.StdEncoding.EncodeToString(privateKey.D.Bytes())
 
-	params := make(url.Values)
-	params.Set("msg", msg)
-	params.Set("key", key)
-	api := "https://splatoon3.doubi.fun:8443/aliyundrive-sign?" + params.Encode()
-	resp, err := m.httpClient.Get(api)
-	if err != nil {
-		return err
-	}
-	respData, err := io.ReadAll(resp.Body)
-	resp.Body.Close()
-	if err != nil {
-		return err
-	}
-	signatureData, err := base64.StdEncoding.DecodeString(string(respData))
-	if err != nil {
-		return err
-	}
+	signatureData := Sign(sum, privateKey.D.Bytes())
 	signature := hex.EncodeToString(signatureData) + "00"
 
 	// 提交key到阿里云
