@@ -2,7 +2,6 @@ package aliyundrive
 
 import (
 	"context"
-	"encoding/json"
 	"sync"
 	"time"
 )
@@ -70,28 +69,15 @@ func (m *refreshTokenManager) AccessToken(ctx context.Context) (string, error) {
 
 func (m *refreshTokenManager) refresh(ctx context.Context) error {
 	now := time.Now()
-	api := "https://api.aliyundrive.com/token/refresh"
-	params := Object{
-		"refresh_token": m.refreshToken,
-	}
-	respData, err := m.drive.requestWithoutCredit(ctx, api, params)
+	resp, err := m.drive.DoRefreshTokenRequest(ctx, RefreshTokenRequest{
+		RefreshToken: m.refreshToken,
+	})
 	if err != nil {
 		return err
 	}
-
-	result := &struct {
-		RefreshToken string `json:"refresh_token"`
-		AccessToken  string `json:"access_token"`
-		ExpiresIn    int64  `json:"expires_in"`
-	}{}
-	err = json.Unmarshal(respData, result)
-	if err != nil {
-		return err
-	}
-
-	m.refreshToken = result.RefreshToken
-	m.accessToken = result.AccessToken
-	m.accessTokenExpireTime = now.Add(time.Second * time.Duration(result.ExpiresIn-60))
+	m.refreshToken = resp.RefreshToken
+	m.accessToken = resp.AccessToken
+	m.accessTokenExpireTime = now.Add(time.Second * time.Duration(resp.ExpiresIn-60))
 	return nil
 }
 

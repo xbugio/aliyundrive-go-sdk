@@ -6,9 +6,11 @@ import (
 
 // 操作阿里网盘的SDK客户端
 type Drive struct {
-	driveId      string
-	tokenManager TokenManager
-	httpClient   *http.Client
+	driveId          string
+	deviceId         string
+	tokenManager     TokenManager
+	signatureManager SignatureManager
+	httpClient       *http.Client
 }
 
 type optionFunc func(c *Drive)
@@ -40,6 +42,13 @@ func WithDriveId(driveId string) optionFunc {
 	}
 }
 
+// 配置DeviceId
+func WithDeviceId(deviceId string) optionFunc {
+	return func(c *Drive) {
+		c.deviceId = deviceId
+	}
+}
+
 // 配置自定义Http客户端
 func WithHttpClient(httpClient *http.Client) optionFunc {
 	return func(c *Drive) {
@@ -51,5 +60,12 @@ func WithHttpClient(httpClient *http.Client) optionFunc {
 func WithTokenManager(tokenManager TokenManager) optionFunc {
 	return func(c *Drive) {
 		c.tokenManager = tokenManager
+	}
+}
+
+// 配置签名管理器
+func WithSignatureManager(signatureManager SignatureManager) optionFunc {
+	return func(c *Drive) {
+		c.signatureManager = signatureManager
 	}
 }

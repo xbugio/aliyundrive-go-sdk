@@ -49,16 +49,36 @@ func (c *Drive) toRequest(ctx context.Context, url string, params any) (*http.Re
 	return request, nil
 }
 
-func (c *Drive) requestWithCredit(ctx context.Context, url string, params any) ([]byte, error) {
+func (c *Drive) withCredit(ctx context.Context, request *http.Request) error {
 	accessToken, err := c.tokenManager.AccessToken(ctx)
 	if err != nil {
-		return nil, err
+		return err
 	}
+	request.Header.Set("Authorization", "Bearer "+accessToken)
+	request.Header.Set("X-Device-Id", c.deviceId)
+	return nil
+}
+
+func (c *Drive) withSignature(ctx context.Context, request *http.Request) error {
+	signature, err := c.signatureManager.Signature(ctx)
+	if err != nil {
+		return err
+	}
+	request.Header.Set("X-Signature", signature)
+	return nil
+}
+
+func (c *Drive) requestWithCredit(ctx context.Context, url string, params any) ([]byte, error) {
 	request, err := c.toRequest(ctx, url, params)
 	if err != nil {
 		return nil, err
 	}
-	request.Header.Set("Authorization", "Bearer "+accessToken)
+	if err := c.withCredit(ctx, request); err != nil {
+		return nil, err
+	}
+	if err := c.withSignature(ctx, request); err != nil {
+		return nil, err
+	}
 	return c.doRequest(request)
 }
 
@@ -67,7 +87,8 @@ func (c *Drive) requestWithoutCredit(ctx context.Context, url string, params any
 	if err != nil {
 		return nil, err
 	}
-	return c.doRequest(request)
+	resp, err := c.doRequest(request)
+	return resp, err
 }
 
 func (c *Drive) doRequest(request *http.Request) ([]byte, error) {
