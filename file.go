@@ -495,7 +495,7 @@ func (c *Drive) DoDownloadFileRequest(ctx context.Context, request DownloadFileR
 	httpRequest.Header.Set("Origin", "https://www.aliyundrive.com")
 	httpRequest.Header.Set("Referer", "https://www.aliyundrive.com/")
 
-	resp, err := c.httpClient.Do(httpRequest)
+	resp, err := c.HttpClient.Do(httpRequest)
 	if err != nil {
 		return nil, err
 	}
@@ -523,7 +523,7 @@ func (c *Drive) DoUploadFileRequest(ctx context.Context, request UploadFileReque
 	httpRequest.Header.Set("Origin", "https://www.aliyundrive.com")
 	httpRequest.Header.Set("Referer", "https://www.aliyundrive.com/")
 
-	resp, err := c.httpClient.Do(httpRequest)
+	resp, err := c.HttpClient.Do(httpRequest)
 	if err != nil {
 		return nil, err
 	}
@@ -871,7 +871,7 @@ func (c *Drive) DoRestoreRequest(ctx context.Context, request RestoreRequest) (*
 		return nil, err
 	}
 	httpRequest.Header.Set("Authorization", "Bearer "+accessToken)
-	resp, err := c.httpClient.Do(httpRequest)
+	resp, err := c.HttpClient.Do(httpRequest)
 	if err != nil {
 		return nil, err
 	}
@@ -910,7 +910,7 @@ func (c *Drive) DoDeleteRequest(ctx context.Context, request DeleteRequest) (*De
 		return nil, err
 	}
 	httpRequest.Header.Set("Authorization", "Bearer "+accessToken)
-	resp, err := c.httpClient.Do(httpRequest)
+	resp, err := c.HttpClient.Do(httpRequest)
 	if err != nil {
 		return nil, err
 	}

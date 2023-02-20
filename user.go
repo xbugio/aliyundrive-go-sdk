@@ -36,7 +36,14 @@ type GetUserInfoResponse struct {
 
 // 获取用户信息接口
 func (c *Drive) DoGetUserInfoRequest(ctx context.Context, request GetUserInfoRequest) (*GetUserInfoResponse, error) {
-	resp, err := c.requestWithCredit(ctx, "https://api.aliyundrive.com/v2/user/get", Object{})
+	httpRequest, err := c.toRequest(ctx, "https://api.aliyundrive.com/v2/user/get", Object{})
+	if err != nil {
+		return nil, err
+	}
+	if err := c.withCredit(ctx, httpRequest); err != nil {
+		return nil, err
+	}
+	resp, err := c.doRequest(httpRequest)
 	if err != nil {
 		return nil, err
 	}
@@ -102,6 +109,34 @@ func (c *Drive) DoCreateSessionRequest(ctx context.Context, request CreateSessio
 	}
 
 	result := new(CreateSessionResponse)
+	err = json.Unmarshal(resp, result)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+type RenewSessionRequest struct {
+}
+
+type RenewSessionResponse struct {
+}
+
+// 刷新session
+func (c *Drive) DoRenewSessionRequest(ctx context.Context, request RenewSessionRequest) (*RenewSessionResponse, error) {
+	httpRequest, err := c.toRequest(ctx, "https://api.aliyundrive.com/users/v1/users/device/renew_session", Object{})
+	if err != nil {
+		return nil, err
+	}
+	if err := c.withCredit(ctx, httpRequest); err != nil {
+		return nil, err
+	}
+	resp, err := c.doRequest(httpRequest)
+	if err != nil {
+		return nil, err
+	}
+
+	result := new(RenewSessionResponse)
 	err = json.Unmarshal(resp, result)
 	if err != nil {
 		return nil, err

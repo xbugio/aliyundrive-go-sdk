@@ -92,7 +92,7 @@ func (c *Drive) requestWithoutCredit(ctx context.Context, url string, params any
 }
 
 func (c *Drive) doRequest(request *http.Request) ([]byte, error) {
-	resp, err := c.httpClient.Do(request)
+	resp, err := c.HttpClient.Do(request)
 	if err != nil {
 		return nil, err
 	}

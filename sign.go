@@ -6,7 +6,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
-	"net/http"
+	"sync"
 	"time"
 
 	"github.com/dustinxie/ecc"
@@ -17,26 +17,18 @@ type SignatureManager interface {
 }
 
 type signatureManager struct {
-	drive      *Drive
-	deviceId   string
-	userId     string
-	httpClient *http.Client
+	drive *Drive
 
 	privateKey  *ecdsa.PrivateKey
 	expiredTime time.Time
 	signature   string
+	wg          *sync.WaitGroup
 }
 
-func NewSignatureManager(drive *Drive, deviceId string, userId string, httpClient *http.Client) *signatureManager {
+func NewSignatureManager(drive *Drive) *signatureManager {
 	m := &signatureManager{
-		drive:    drive,
-		deviceId: deviceId,
-		userId:   userId,
-	}
-	if httpClient == nil {
-		m.httpClient = http.DefaultClient
-	} else {
-		m.httpClient = httpClient
+		drive: drive,
+		wg:    new(sync.WaitGroup),
 	}
 	return m
 }
@@ -51,6 +43,28 @@ func (m *signatureManager) Signature(ctx context.Context) (string, error) {
 	return m.signature, nil
 }
 
+func (m *signatureManager) KeepAlive(ctx context.Context, t time.Duration) {
+	m.wg.Add(1)
+	go func() {
+		defer m.wg.Done()
+		ticker := time.NewTicker(t)
+	keepaliveLoop:
+		for {
+			select {
+			case <-ticker.C:
+			case <-ctx.Done():
+				break keepaliveLoop
+			}
+			m.Signature(ctx)
+		}
+		ticker.Stop()
+	}()
+}
+
+func (m *signatureManager) WaitStop() {
+	m.wg.Wait()
+}
+
 func (m *signatureManager) genSignature(ctx context.Context) error {
 
 	// 生成privateKey
@@ -63,13 +77,16 @@ func (m *signatureManager) genSignature(ctx context.Context) error {
 	publicKeyString := m.getPublicKeyString(privateKey)
 
 	// 用key去生成signature
-	code := "5dde4e1bdf9e4966b387ba58f4b3fdc3:" + m.deviceId + ":" + m.userId + ":0"
+	code := "5dde4e1bdf9e4966b387ba58f4b3fdc3:" + m.drive.deviceId + ":" + m.drive.userId + ":0"
 	hasher := sha256.New()
 	hasher.Write([]byte(code))
 	sum := hasher.Sum(nil)
 
-	signatureData := Sign(sum, privateKey.D.Bytes())
-	signature := hex.EncodeToString(signatureData) + "00"
+	signatureData, err := ecc.SignBytes(privateKey, sum, ecc.RecID|ecc.LowerS)
+	if err != nil {
+		return err
+	}
+	signature := hex.EncodeToString(signatureData)
 
 	// 提交key到阿里云
 	now := time.Now()
@@ -86,7 +103,7 @@ func (m *signatureManager) genSignature(ctx context.Context) error {
 	// 没问题则更新存储
 	m.signature = signature
 	m.privateKey = privateKey
-	m.expiredTime = now.Add(time.Second * 82800)
+	m.expiredTime = now.Add(time.Minute * 3)
 	return nil
 }
 
