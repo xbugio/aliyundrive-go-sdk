@@ -46,7 +46,6 @@ func (c *Drive) Init() error {
 	c.deviceId = hex.EncodeToString(hasher.Sum(nil))
 
 	c.signatureManager = NewSignatureManager(c)
-	c.signatureManager.KeepAlive(c.ctx, time.Second*10)
 
 	return nil
 }
@@ -54,5 +53,4 @@ func (c *Drive) Init() error {
 func (c *Drive) Destory() {
 	c.cancel()
 	c.tokenManager.WaitStop()
-	c.signatureManager.WaitStop()
 }

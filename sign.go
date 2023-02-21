@@ -43,28 +43,6 @@ func (m *signatureManager) Signature(ctx context.Context) (string, error) {
 	return m.signature, nil
 }
 
-func (m *signatureManager) KeepAlive(ctx context.Context, t time.Duration) {
-	m.wg.Add(1)
-	go func() {
-		defer m.wg.Done()
-		ticker := time.NewTicker(t)
-	keepaliveLoop:
-		for {
-			select {
-			case <-ticker.C:
-			case <-ctx.Done():
-				break keepaliveLoop
-			}
-			m.Signature(ctx)
-		}
-		ticker.Stop()
-	}()
-}
-
-func (m *signatureManager) WaitStop() {
-	m.wg.Wait()
-}
-
 func (m *signatureManager) genSignature(ctx context.Context) error {
 
 	// 生成privateKey
